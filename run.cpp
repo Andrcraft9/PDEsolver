@@ -24,15 +24,6 @@ int main()
     Matrix Z(X*Y);
     std::cout << X << Y << Z;
     std::cout << std::endl;
-
-    std::cout << "Questions at 03.05.2018:" << std::endl;
-    std::cout << "1) Difference between int* and int[] ? Why unique_ptr dont work with int* ?" << std::endl;
-    std::cout << "2) Why valgrind lie?" << std::endl;
-    std::cout << "3) Now, all operators do copy ... try move semantics and try find good code style" << std::endl;
-    std::cout << "4) Perfomace tests for move semantic" << std::endl;
-    std::cout << "5) Hm... Thats all? Dont know... Need Git repo" << std::endl;
-    std::cout << std::endl;
-    
     
     return 0;
 }
