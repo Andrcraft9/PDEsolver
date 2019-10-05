@@ -1,61 +1,34 @@
 #include "matrix.hpp"
 
+// Constructors and desctructor (for Host and Device)
 
-// Constructors
-
- Matrix::Matrix(int m, int n, double val, std::string s) : 
-     _order(Matrix_order::Cols), _rows(m), _cols(n), _vals(nullptr), _name(s) 
+ Matrix::Matrix(int m, int n, double val, std::string s) : _order(Matrix_order::Cols), _rows(m), _cols(n), _vals(m*n), _dev_vals(m, n), _name(s) 
 {
     assert(_rows > 0 && _cols > 0);
-
-    _vals = std::unique_ptr<double[]>(new double [_rows*_cols]);
     
     for(int in = 0; in < _cols; ++in)
-    {
         for(int im = 0; im < _rows; ++im)
-        {
             (*this)(im, in) = val;
-        }
-    }
 
     std::cout << "Constructor for " << _name << std::endl;
 }
 
-Matrix::Matrix(const Matrix& a) : 
-    _order(a._order), _rows(a._rows), _cols(a._cols), _vals(nullptr), _name("copy of " + a._name) 
+Matrix::Matrix(const Matrix& a) : _order(a._order), _rows(a._rows), _cols(a._cols), _vals(a._vals), _dev_vals(a._dev_vals), _name("copy of " + a._name) 
 {
-    _vals = std::unique_ptr<double[]>(new double [_rows*_cols]);
-
-    for(int in = 0; in < _cols; ++in)
-    {
-        for(int im = 0; im < _rows; ++im)
-        {
-            (*this)(im, in) = a(im, in);
-        }
-    }
-
     std::cout << "Copy Constructor for " << _name << std::endl;
 }
 
-Matrix::Matrix(Matrix&& a) : 
-    _order(a._order), _rows(a._rows), _cols(a._cols), _vals(nullptr), _name("moved " + a._name) 
+Matrix::Matrix(Matrix&& a) : _order(a._order), _rows(a._rows), _cols(a._cols), _vals(std::move(a._vals)), _dev_vals(std::move(a._dev_vals)), _name("moved " + a._name) 
 {
-    _vals = std::move(a._vals);
-
     std::cout << "Move Constructor for " << _name << std::endl;
 }
 
-
-// Destructor
-
 Matrix::~Matrix()
 {
-
     std::cout << "Destructor for " << _name << std::endl;
 }
 
-
-// Public methods
+// Host methods
 
 std::string Matrix::get_name() const
 {
@@ -75,20 +48,13 @@ int Matrix::get_cols() const
 Matrix& Matrix::diagonalize()
 {
     for(int in = 0; in < _cols; ++in)
-    {
         for(int im = 0; im < _rows; ++im)
-        {
-            if (in != im)
-            {
-                (*this)(im, in) = 0.0;
-            }
-        }
-    }
+            if (in != im) (*this)(im, in) = 0.0;
 
     return *this;
 }
 
-// Operators
+// Host operators
 
 const double& Matrix::operator()(int m, int n) const
 {
@@ -107,12 +73,8 @@ Matrix Matrix::operator+(const Matrix& a) const
     Matrix b(_rows, _cols, 0, this->_name + "+" + a._name);
 
     for(int in = 0; in < _cols; ++in)
-    {
         for(int im = 0; im < _rows; ++im)
-        {
             b(im, in) = (*this)(im, in) + a(im, in);
-        }
-    }
 
     return b;
 }
@@ -124,12 +86,8 @@ Matrix Matrix::operator-(const Matrix& a) const
     Matrix b(_rows, _cols, 0, this->_name + "-" + a._name); 
 
     for(int in = 0; in < _cols; ++in)
-    {
         for(int im = 0; im < _rows; ++im)
-        {
             b(im, in) = (*this)(im, in) - a(im, in);
-        }
-    }
 
     return b;
 }
@@ -146,9 +104,8 @@ Matrix Matrix::operator*(const Matrix& a) const
         {
             double s = 0;
             for(int k = 0; k < _rows; ++k)
-            {
                  s = s + (*this)(im, k) * a(k, in);
-            }
+
             b(im, in) = s;
         }
     }
@@ -156,14 +113,10 @@ Matrix Matrix::operator*(const Matrix& a) const
     return b;
 }
 
- // Private methods
-    
 //int Matrix::index(int m, int n) const
 //{
 //    return m + n*_rows;
 //}
-
-// Friends for Matrix
 
 std::ostream& operator<< (std::ostream& os, const Matrix& A) 
 {
@@ -172,11 +125,38 @@ std::ostream& operator<< (std::ostream& os, const Matrix& A)
     for(int m = 0; m < A._rows; ++m)
     {
         for(int n = 0; n < A._cols; ++n)
-        {
             os << A(m, n) << " ";
-        }
+
         os << std::endl;
     }
 
     return os;
+}
+
+// Device methods
+
+void Matrix::load_to_device() const
+{
+    _dev_vals = _vals;
+}
+
+void Matrix::load_from_device()
+{
+    _vals = _dev_vals;
+}
+
+Matrix Matrix::device_plus(const Matrix& a) const
+{
+    Matrix b(_rows, _cols, 0, this->_name + "(device)+" + a._name);
+
+    thrust::plus<double> op;
+    thrust::transform(_dev_vals.begin(), _dev_vals.end(), a._dev_vals.begin(), b._dev_vals.begin(), op);
+}
+
+Matrix Matrix::device_minus(const Matrix& a) const
+{
+    Matrix b(_rows, _cols, 0, this->_name + "(device)-" + a._name);
+
+    thrust::minus<double> op;
+    thrust::transform(_dev_vals.begin(), _dev_vals.end(), a._dev_vals.begin(), b._dev_vals.begin(), op);
 }

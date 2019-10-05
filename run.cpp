@@ -1,29 +1,42 @@
 #include "matrix.hpp"
 
+void separate()
+{
+    std::cout << "|------------------------------|" << std::endl;
+    std::cout << std::endl;
+}
+
 int main()
 {
-    std::cout << "Construct matrix A ..." << std::endl;
+    using namespace std;
+
+    cout << "Construct matrix A:" << endl;
     Matrix A(4, 4, 2, "A");
-    std::cout << A;
-    std::cout << std::endl;
+    cout << A << endl;
 
-    std::cout << "Move A to C ..." << std::endl;
-    Matrix C(std::move(A)); // Move semantica, C++11 feature
-    // Now A not exist... 
-    std::cout << std::endl;
+    separate();
 
-    std::cout << "Universe construction for B ..." << std::endl;
+    cout << "Move A to C, show C:" << endl;
+    Matrix C(move(A)); // Move semantica, C++11 feature
+    // Now A is not exist!
+    cout << C << endl;
+    
+    separate();
+
+    cout << "Universe construction for B:" << endl;
     Matrix B{2, 2, 10, "B"}; // Universe constructor, C++11 feature
-    std::cout << B;
-    std::cout << std::endl;
+    cout << B << endl;
 
-    std::cout << "Construct X and Y ..." << std::endl;
+    separate();
+
+    cout << "Construct X and Y:" << endl;
     Matrix X(2, 2, 1, "X"), Y(2, 2, 2, "Y");
-    std::cout << X << Y;
-    std::cout << "Multiple: Z = X * Y ..." << std::endl;
+    cout << X << Y;
+    cout << "Multiple: Z = X * Y, show Z:" << endl;
     Matrix Z(X*Y);
-    std::cout << X << Y << Z;
-    std::cout << std::endl;
+    cout << Z << endl;
+
+    separate();
     
     return 0;
 }
