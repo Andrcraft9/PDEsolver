@@ -1,10 +1,7 @@
-HOST_COMP = g++-8
+HOST_COMP = g++-6
 DEVICE_COMP = nvcc
 ARCH = sm_60
-FLAGS = -std=c++14 -O0
-
-cpu:
-	$(CC) $(FLAGS) -o pde matrix.cpp run.cpp
+FLAGS = -std=c++14
 
 gpu:
-	$(GPU_COMP) $(FLAGS) -arch=$(ARCH) -o pde --compiler-bindir $(HOST_COMP) matrix.cpp matrix.cu run.cpp
+	$(DEVICE_COMP) $(FLAGS) -arch=$(ARCH) -o pde --compiler-bindir $(HOST_COMP) matrix.cu matrix.cpp matrix_matmul.cu run.cpp

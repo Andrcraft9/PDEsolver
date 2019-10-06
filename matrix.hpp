@@ -52,8 +52,8 @@ private:
     Matrix_order _order;
     int _rows;
     int _cols;
-    thrust::host_vector<double>  _vals;
     std::string _name;
+    thrust::host_vector<double>  _vals;
     // Device
     mutable thrust::device_vector<double> _dev_vals;
 

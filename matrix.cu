@@ -1,50 +1,61 @@
 #include "matrix.hpp"
 
-#define BLOCK_SIZE 16
+// Constructors and desctructor (for Host and Device)
+
+ Matrix::Matrix(int m, int n, double val, std::string s) : _order(Matrix_order::Cols), _rows(m), _cols(n), _name(s), _vals(m*n), _dev_vals(m*n)
+{
+    assert(_rows > 0 && _cols > 0);
+    
+    for(int in = 0; in < _cols; ++in)
+        for(int im = 0; im < _rows; ++im)
+            (*this)(im, in) = val;
+
+    std::cout << "Constructor for " << _name << std::endl;
+}
+
+Matrix::Matrix(const Matrix& a) : _order(a._order), _rows(a._rows), _cols(a._cols), _name("copy of " + a._name), _vals(a._vals), _dev_vals(a._dev_vals)
+{
+    std::cout << "Copy Constructor for " << _name << std::endl;
+}
+
+Matrix::Matrix(Matrix&& a) : _order(a._order), _rows(a._rows), _cols(a._cols), _name("moved " + a._name), _vals(std::move(a._vals)), _dev_vals(std::move(a._dev_vals))
+{
+    std::cout << "Move Constructor for " << _name << std::endl;
+}
+
+Matrix::~Matrix()
+{
+    std::cout << "Destructor for " << _name << std::endl;
+}
 
 // Device methods
 
-// CUDA Kernel matvec
-__host__ __device__ int iDivUp(int a, int b)
-{ 
-    return ((a % b) != 0) ? (a / b + 1) : (a / b);
-}
-
-__forceinline__ __device__ int dev_index(int m, int n, int rows, int cols) { return m + n*rows;}
+void Matrix::load_to_device() const
 {
-    return 
+    _dev_vals = _vals;
 }
 
-__global__ void dev_matmul(double* a, double* b, double* c, int rows, int cols)
+void Matrix::load_from_device()
 {
-    int m = blockDim.x*blockIdx.x + threadIdx.x;
-    int n = blockDim.y*blockIdx.y + threadIdx.y;
-    int k = dev_index(m, n, rows, cols);
-
-    double s = 0;
-    for(int i = 0; i < rows; ++i)
-    {
-            int ka = dev_index(m, i, rows, cols);
-            int kb = dev_index(i, n, rows, cols);
-            s = s + a[ka] * b[kb];
-    }
-
-    c[k] = s;
+    _vals = _dev_vals;
 }
 
-Matrix Matrix::device_multiply(const Matrix& a) const
+Matrix Matrix::device_plus(const Matrix& a) const
 {
-    Matrix b(_rows, _cols, 0, this->_name + "(device)*" + a._name);
+    Matrix b(_rows, _cols, 0, this->_name + "(device)+" + a._name);
 
-    const double *raw_ptr_this = thrust::raw_pointer_cast(this->_dev_vals.data());
-    const double *raw_ptr_a = thrust::raw_pointer_cast(a._dev_vals.data());
-    double *raw_ptr_b = thrust::raw_pointer_cast(b._dev_vals.data());
+    thrust::plus<double> op;
+    thrust::transform(_dev_vals.begin(), _dev_vals.end(), a._dev_vals.begin(), b._dev_vals.begin(), op);
 
-    dim3 DimBlock(BLOCK_SIZE, BLOCK_SIZE);
-    dim3 DimGrid(iDivUp(_rows, BLOCK_SIZE), iDivUp(_cols, BLOCK_SIZE));
-    dev_matmul<<<DimBlock, DimGrid>>>(raw_ptr_this, raw_ptr_a, raw_ptr_b, _rows, _cols);
-    
-    //thrust::plus<double> op;
-    //thrust::transform(_dev_vals.begin(), _dev_vals.end(), a._dev_vals.begin(), b._dev_vals.begin(), op);
+    return b;
 }
 
+Matrix Matrix::device_minus(const Matrix& a) const
+{
+    Matrix b(_rows, _cols, 0, this->_name + "(device)-" + a._name);
+
+    thrust::minus<double> op;
+    thrust::transform(_dev_vals.begin(), _dev_vals.end(), a._dev_vals.begin(), b._dev_vals.begin(), op);
+
+    return b;
+}
