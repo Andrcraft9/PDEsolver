@@ -1,1 +1,1 @@
-PDEsolver, C++11/14, in developing.
+PDEsolver, C++11/14, CUDA, in developing.
